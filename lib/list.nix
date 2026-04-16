@@ -1,16 +1,16 @@
 { 
   lib # lib is bibliothix's own lib, for cross-module use, instead of using recursive attribute sets
 }: {
-  listOnly = emptyAllowed: expr: let 
+  listOnly = emptyAllowed: arg: let 
     buffer = [ # Dynamic error message, will show up in other functions which use listOnly
       "this function is used strictly on"
       (if emptyAllowed then " " else " non empty ")
       "lists"
     ];
-  in if builtins.isList expr && (emptyAllowed || expr != [])
-    then expr
+  in if builtins.isList arg && (emptyAllowed || arg != [])
+    then arg
     else buffer
-      |> builtins.concatStringsSep ""  # pipe-operators are required
+      |> builtins.concatStringsSep "" 
       |> builtins.throw;
 
   isMember = x: xs: builtins.any # builtins.any is a lazy, short-circuiting function
@@ -18,7 +18,7 @@
     xs;
 
   cons = toLeft: x: xs: xs # toLeft is Boolean, deciding the end we cons on
-    |> listOnly
+    |> lib.listOnly
     |> (list: if toLeft 
       then [x] ++ list
       else list ++ [x]);
@@ -28,19 +28,19 @@
       then base
       else f2 (builtins.head ys) (ys |> builtins.tail |> go);
   in xs
-    |> listOnly true
+    |> lib.listOnly true
     |> go;
 
   foldR1 = f2: xs: xs
-    |> listOnly false
-    |> (list: foldR # Need to wrap a function here, otherwise builtins.tail is evalueated eagerly and its error message takes precedence over listOnly's error message when xs is an empty list
+    |> lib.listOnly false
+    |> (list: lib.foldR # Need to wrap a function here, otherwise builtins.tail is evalueated eagerly and its error message takes precedence over listOnly's error message when xs is an empty list
       f2
       (builtins.head list)
       (builtins.tail list));
 
   # init = xs: foldR1
 
-  last = xs: foldR1
+  last = xs: lib.foldR1
     (_: b: b)
     xs;
 }
