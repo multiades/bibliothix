@@ -1,9 +1,8 @@
-{
-  lib
-}: {
-  pathOnly = arg: if builtins.isPath arg
-  then arg
-  else builtins.throw "this function is used strictly on paths";
+lib: {
+  pathOnly = arg: if 
+    builtins.isPath arg
+    then arg
+    else builtins.throw "this function is used strictly on paths";
 
   pathToBasename = arg: arg
     |> lib.path.pathOnly
@@ -23,22 +22,26 @@
       "symlink"
       "unknown"
     ];
-    entries = if !(builtins.pathExists root) # Guard against non existent directories
-    then builtins.throw ("there is no " + builtins.toString root + " directory in the filesystem")
-    else
-      if !(lib.list.isMember filetype validFiletypes) # Guard against invalid filetypes
-      then builtins.throw ("there is no '"
-        + filetype 
-        + "' filetype available, it should be one of: '"
-        + builtins.concatStringsSep "', '" validFiletypes
-        + "' (special filesystem entities like device files, named pipes/FIFOS, sockets)")
-      else builtins.readDir root; # The keys of the returned attribute set are relative path names (of type string) from root
+    entries = if 
+      !(builtins.pathExists root) # Guard against non existent directories
+      then builtins.throw ("there is no " + builtins.toString root + " directory in the filesystem")
+      else if 
+        !(lib.list.isMember filetype validFiletypes) # Guard against invalid filetypes
+        then builtins.throw 
+          ("there is no '"
+          + filetype 
+          + "' filetype available, it should be one of: '"
+          + builtins.concatStringsSep "', '" validFiletypes
+          + "' (special filesystem entities like device files, named pipes/FIFOS, sockets)")
+        else builtins.readDir root; # The keys of the returned attribute set are relative path names (of type string) from root
   in entries
     |> builtins.attrNames
-    |> builtins.filter (attrName: entries.${attrName} == filetype
+    |> builtins.filter (attrName: 
+      let suffixLen = builtins.stringLength suffix;
+      in entries.${attrName} == filetype
       && builtins.substring
-        (builtins.stringLength attrName - builtins.stringLength suffix)
-        (builtins.stringLength suffix)
+        (builtins.stringLength attrName - suffixLen)
+        suffixLen
         attrName == suffix)
     |> builtins.map (attrName: 
       let temp = root + "/${attrName}";
