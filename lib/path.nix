@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 lib: {
   pathOnly = arg: if 
     builtins.isPath arg

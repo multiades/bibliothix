@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 lib: {
   listOnly = emptyAllowed: arg: let 
     buffer = [ # Dynamic error message, will show up in other functions which use listOnly
