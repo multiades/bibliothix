@@ -2,7 +2,6 @@
 
 * README
 :PROPERTIES:
-:EXPORT_FILE_NAME: ./README
 :EXPORT_OPTIONS: toc:nil title:nil
 :END:
 
