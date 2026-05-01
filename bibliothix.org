@@ -72,15 +72,16 @@ Flake consumers should have a =./flake.nix= file of the format:
 - foldR
 - foldR1
 - last
+- satisfies
 
 *** Path module
 
 - pathOnly
 - withPath
 - pathToBasename
-- findFiles
+- fileSearch
 
-**** findFiles
+**** fileSearch
 
 Useful for auto-importing all desired files in a directory without manually listing them (it even handles files with multiple types, like =./foo.tar.gz=).
 
@@ -94,14 +95,14 @@ Valid filetypes (from =builtins.readDir=, since it is used):
 
 Note: the function is non-recursive, it only searches the immediate contents of =root= (top-level search only).
 
-Example usage on a directory named =modules= (in the working directory), containing two nix files, namely =networking.nix= and =locale.nix=:
+Example usage on a directory named =./tarballs/=, containing two archives, namely =./tarballs/foo.tar.gz= and =./tarballs/bar.tar=:
 
 #+begin_src nix
 
-lib.path.findFiles {
-  root = ./modules;
+lib.path.fileSearch {
+  root = ./tarballs;
   filetype = "regular";
-  suffix = ".nix"; # Or even "nix"
+  suffix = ".tar"; # Or even "tar"
 }
 
 #+end_src 
@@ -112,12 +113,12 @@ That should evaluate to:
 
 [
   { 
-    basename = "networking"; 
-    path = /path/to/modules/networking.nix;
+    basename = "foo"; 
+    path = /<pathTo>/tarballs/foo.tar.gz;
   }
   { 
-    basename = "users";
-    path = /path/to/modules/users.nix;
+    basename = "bar";
+    path = /<pathTo>/tarballs/bar.tar;
   }
 ]
 
@@ -174,45 +175,40 @@ lib: {
       (if emptyAllowed then " " else " non empty ")
       "lists"
     ];
-  in if 
-    builtins.isList arg && (emptyAllowed || arg != [])
-    then arg
-    else buffer
-      |> builtins.concatStringsSep "" 
-      |> builtins.throw;
+  in 
+    if 
+      builtins.isList arg && (emptyAllowed || arg != [])
+      then arg
+      else buffer
+        |> builtins.concatStringsSep "" 
+        |> builtins.throw;
 
-  isMember = x: xs: builtins.any # builtins.any is a lazy, short-circuiting function
+  isMember = x: xs: builtins.any # builtins.any is a lazy, short-circuiting function, its second argument is expected to be a list
     (y: y == x)
     xs;
 
-  cons = toLeft: x: xs: xs # toLeft is Boolean, deciding the end we cons on
-    |> lib.list.listOnly
-    |> (list: if 
-      toLeft 
-      then [x] ++ list
-      else list ++ [x]);
+  satisfies = arg: predicates: builtins.any # predicates should be a list
+    (predicate: predicate arg)
+    predicates;
 
-  foldR = f2: base: xs: let 
-    go = ys: if
+  foldr = f2: base: xs: if # xs is expected to be a list because builtins.head and builtins.tail are applied on it
+    xs == []
+    then base
+    else f2
+      (builtins.head xs)
+      (builtins.tail xs |> foldr f2 base);
+
+  foldr1 = f2: xs: xs
+    |> (ys: if 
       ys == []
-      then base
-      else f2 
-        (builtins.head ys)
-        (ys |> builtins.tail |> go);
-  in xs
-    |> lib.list.listOnly true
-    |> go;
-
-  foldR1 = f2: xs: xs
-    |> lib.list.listOnly false
-    |> (list: lib.list.foldR # Need to wrap a function here, otherwise builtins.tail is evalueated eagerly and its error message takes precedence over listOnly's error message when xs is an empty list
+      then builtins.throw "foldr1 expects non-null lists"
+      else ys)
+    |> (zs: lib.list.foldr
       f2
-      (builtins.head list)
-      (builtins.tail list));
+      (builtins.head zs)
+      (builtins.tail zs));
 
-  # init = xs: ...
-
-  last = xs: lib.list.foldR1
+  last = xs: lib.list.foldr1
     (_: b: b)
     xs;
 }
@@ -229,8 +225,8 @@ lib: {
     then arg
     else builtins.throw "this function is used strictly on paths";
 
-  withPath = parentPath: baseStrs: builtins.map
-    (s: parentPath + ("/" + s))
+  withPath = parentPath: baseStrs: builtins.map # parentPath should be a path
+    (baseStr: (lib.path.pathOnly parentPath) + ("/" + s))
     baseStrs;
 
   pathToBasename = arg: arg
@@ -240,7 +236,7 @@ lib: {
       |> builtins.match ".*/(\\.*[^./]+)(\\.[^/]*)?" # builtins.match returns null if there's no match with the regex, or a list of capture groups
       |> builtins.head); 
 
-  findFiles = { # Maybe add recursion for directories (and symlinks pointing to directories) in the future
+  fileSearch = { # Maybe add recursion for directories (and symlinks pointing to directories) in the future
     root, # Search within root
     filetype, 
     suffix # Terminating substring
@@ -251,33 +247,37 @@ lib: {
       "symlink"
       "unknown"
     ];
+
     entries = if 
       !(builtins.pathExists root) # Guard against non existent directories
       then builtins.throw ("there is no " + builtins.toString root + " directory in the filesystem")
       else if 
         !(lib.list.isMember filetype validFiletypes) # Guard against invalid filetypes
-        then builtins.throw 
-          ("there is no '"
+        then builtins.throw (
+          "there is no '"
           + filetype 
           + "' filetype available, it should be one of: '"
           + builtins.concatStringsSep "', '" validFiletypes
-          + "' (special filesystem entities like device files, named pipes/FIFOS, sockets)")
+          + "' (special filesystem entities like device files, named pipes/FIFOS, sockets)"
+        )
         else builtins.readDir root; # The keys of the returned attribute set are relative path names (of type string) from root
+
   in entries
     |> builtins.attrNames
-    |> builtins.filter (attrName: 
-      let suffixLen = builtins.stringLength suffix;
-      in entries.${attrName} == filetype
+    |> builtins.filter (attrName: let 
+      suffixLen = builtins.stringLength suffix;
+    in 
+      entries.${attrName} == filetype
       && builtins.substring
         (builtins.stringLength attrName - suffixLen)
         suffixLen
         attrName == suffix)
-    |> builtins.map (attrName: 
-      let temp = root + "/${attrName}";
-      in {
-        basename = lib.path.pathToBasename temp;
-        path = temp;
-      });
+    |> builtins.map (attrName: let 
+      tempath = root + "/${attrName}";
+    in {
+      basename = lib.path.pathToBasename tempath;
+      path = tempath;
+    });
 }
 
 #+end_src
