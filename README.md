@@ -3,7 +3,7 @@ A tiny Nix library of auxiliary functions with no nixpkgs dependency (self-conta
 
 # Lazy design
 
-Desiring to avoid the overhead of a recursive attribute set, the library was designed to use a self-referencing attribute set so modules can call each other while remaining independently importable. Due to Nix's laziness, nothing is evaluated until actually accessed. 
+Aiming to avoid the overhead of a recursive attribute set, the library was designed to use a self-referencing attribute set so modules can call each other while remaining independently importable. Due to Nix's laziness, nothing is evaluated until actually accessed. 
 
 The `./default.nix` file is the aggregator of the modules in the `./lib` directory.
 
@@ -56,16 +56,17 @@ Flake consumers should have a `./flake.nix` file of the format:
 
 # Function reference list
 
+Enumeration of functions in each module.
+
 
 ## List module
 
 -   listOnly
 -   isMember
--   cons
--   foldR
--   foldR1
--   last
 -   satisfies
+-   foldr
+-   foldr1
+-   last
 
 
 ## Path module
@@ -78,39 +79,50 @@ Flake consumers should have a `./flake.nix` file of the format:
 
 ### fileSearch
 
-Useful for auto-importing all desired files in a directory without manually listing them (it even handles files with multiple types, like `./foo.tar.gz`).
+<span class="underline">Type signature</span>
+fileSearch :: { 
+  root     :: Path, 
+  filetype :: String,
+  suffix   :: String
+} -> [{ 
+  basename :: String,
+  path     :: Path
+}]
 
-It has the type signature `{ root: Path, filetype: String, suffix: String } -> List` and it locates files in a directory matching a given filetype and a filename terminating substring, returning a list of `{ basename, path }` attribute sets.
-
-Valid filetypes (from `builtins.readDir`, since it is used):
+<span class="underline">Valid filetypes</span> (from `builtins.readDir`, since it is used):
 
 -   "regular"
 -   "directory"
 -   "symlink"
 -   "unknown"
 
+It it locates files in a given directory matching a given filetype and a filename terminating substring, returning a list of attribute sets containing the basename and the path of each discovered file. Useful for auto-importing all desired files in a directory without manually listing them.
+
 Note: the function is non-recursive, it only searches the immediate contents of `root` (top-level search only).
 
-Example usage on a directory named `./tarballs/`, containing two archives, namely `./tarballs/foo.tar.gz` and `./tarballs/bar.tar`:
+Example usage on a directory named `./bashes/`, containing two bash scripts, namely `./hello-world.sh` and `./cowsay.sh`:
 
     
     lib.path.fileSearch {
-      root = ./tarballs;
+      root = ./bashes;
       filetype = "regular";
-      suffix = ".tar"; # Or even "tar"
+      suffix = ".sh"; # Or even "sh"
     }
 
 That should evaluate to:
 
-    
-    [
-      { 
-        basename = "foo"; 
-        path = /<pathTo>/tarballs/foo.tar.gz;
-      }
-      { 
-        basename = "bar";
-        path = /<pathTo>/tarballs/bar.tar;
-      }
-    ]
+\#+begin<sub>src</sub> nix
+
+[
+  { 
+    basename = "hello-world"; 
+    path = /<pathTo>/bashes/hello-world.sh;
+  }
+  { 
+    basename = "cowsay";
+    path = /<pathTo>/bashes/cowsay.sh;
+  }
+]
+
+\#+end<sub>srcp</sub>
 

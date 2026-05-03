@@ -5,7 +5,7 @@ lib: {
     else builtins.throw "this function is used strictly on paths";
 
   withPath = parentPath: baseStrs: builtins.map # parentPath should be a path
-    (baseStr: (lib.path.pathOnly parentPath) + ("/" + s))
+    (baseStr: (lib.path.pathOnly parentPath) + ("/" + baseStr))
     baseStrs;
 
   pathToBasename = arg: arg
