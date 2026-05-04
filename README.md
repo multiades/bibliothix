@@ -27,14 +27,15 @@ Here is a minimal example of using the library as a standalone import:
           url = "https://github.com/multiades/bibliothix/archive/main.tar.gz";
         });
     in 
-      bibliothix.list.isMember 
-        "foo" 
+      bibliothix.list.satisfies
+        4
         [ 
-          "foo"
-          "bar"
-        ]
+          (n: n < 3)
+          (m: m == 0)
+          (k: k * 2 > 6)
+        ];
 
-The aforementioned expression should evaluate to `true`.
+The aforementioned expression should evaluate to `true`, due to `4` satisfying the last predicate in the list.
 
 
 ## Flake usage
@@ -62,7 +63,6 @@ Enumeration of functions in each module.
 ## List module
 
 -   listOnly
--   isMember
 -   satisfies
 -   foldr
 -   foldr1
