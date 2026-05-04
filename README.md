@@ -80,23 +80,25 @@ Enumeration of functions in each module.
 ### fileSearch
 
 <span class="underline">Type signature</span>
-fileSearch :: { 
-  root     :: Path, 
-  filetype :: String,
-  suffix   :: String
-} -> [{ 
-  basename :: String,
-  path     :: Path
-}]
 
-<span class="underline">Valid filetypes</span> (from `builtins.readDir`, since it is used):
+    
+    fileSearch :: { 
+      root     :: Path, 
+      filetype :: String,
+      suffix   :: String
+    } -> [{ 
+      basename :: String,
+      path     :: Path
+    }]
+
+Valid filetypes (from `builtins.readDir`, since it is used):
 
 -   "regular"
 -   "directory"
 -   "symlink"
 -   "unknown"
 
-It it locates files in a given directory matching a given filetype and a filename terminating substring, returning a list of attribute sets containing the basename and the path of each discovered file. Useful for auto-importing all desired files in a directory without manually listing them.
+This function locates files in a given directory matching a given filetype and a filename terminating substring, returning a list of attribute sets containing the basename and the path of each discovered file. Useful for auto-importing all desired files in a directory without manually listing them.
 
 Note: the function is non-recursive, it only searches the immediate contents of `root` (top-level search only).
 
@@ -111,18 +113,15 @@ Example usage on a directory named `./bashes/`, containing two bash scripts, nam
 
 That should evaluate to:
 
-\#+begin<sub>src</sub> nix
-
-[
-  { 
-    basename = "hello-world"; 
-    path = /<pathTo>/bashes/hello-world.sh;
-  }
-  { 
-    basename = "cowsay";
-    path = /<pathTo>/bashes/cowsay.sh;
-  }
-]
-
-\#+end<sub>srcp</sub>
+    
+    [
+      { 
+        basename = "hello-world"; 
+        path = /<pathTo>/bashes/hello-world.sh;
+      }
+      { 
+        basename = "cowsay";
+        path = /<pathTo>/bashes/cowsay.sh;
+      }
+    ]
 

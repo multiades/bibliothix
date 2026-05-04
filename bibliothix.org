@@ -2,6 +2,7 @@
 
 * README
 :PROPERTIES:
+:EXPORT_FILE_NAME: ./README
 :EXPORT_OPTIONS: toc:nil title:nil
 :END:
 
@@ -23,7 +24,7 @@ Some of the functions' definitions use the experimental Nix pipe operators. Make
 
 Here is a minimal example of using the library as a standalone import:
 
-#+begin_src nix
+#+BEGIN_SRC nix
 
 let 
   bibliothix = builtins.import 
@@ -84,6 +85,9 @@ Enumeration of functions in each module.
 **** fileSearch
 
 _Type signature_
+
+#+BEGIN_EXAMPLE
+
 fileSearch :: { 
   root     :: Path, 
   filetype :: String,
@@ -93,19 +97,21 @@ fileSearch :: {
   path     :: Path
 }]
 
-_Valid filetypes_ (from =builtins.readDir=, since it is used):
+#+END_EXAMPLE
+
+Valid filetypes (from =builtins.readDir=, since it is used):
 - "regular"
 - "directory"
 - "symlink"
 - "unknown"
 
-It it locates files in a given directory matching a given filetype and a filename terminating substring, returning a list of attribute sets containing the basename and the path of each discovered file. Useful for auto-importing all desired files in a directory without manually listing them.
+This function locates files in a given directory matching a given filetype and a filename terminating substring, returning a list of attribute sets containing the basename and the path of each discovered file. Useful for auto-importing all desired files in a directory without manually listing them.
 
 Note: the function is non-recursive, it only searches the immediate contents of =root= (top-level search only).
 
 Example usage on a directory named =./bashes/=, containing two bash scripts, namely =./hello-world.sh= and =./cowsay.sh=:
 
-#+begin_src nix
+#+BEGIN_SRC nix
 
 lib.path.fileSearch {
   root = ./bashes;
@@ -113,11 +119,11 @@ lib.path.fileSearch {
   suffix = ".sh"; # Or even "sh"
 }
 
-#+end_src 
+#+END_SRC 
 
 That should evaluate to:
 
-#+begin_src nix
+#+BEGIN_SRC nix
 
 [
   { 
@@ -130,7 +136,7 @@ That should evaluate to:
   }
 ]
 
-#+end_srcp
+#+END_SRC
 
 * Source code
 :PROPERTIES:
