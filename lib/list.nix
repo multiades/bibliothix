@@ -13,11 +13,7 @@ lib: {
         |> builtins.concatStringsSep "" 
         |> builtins.throw;
 
-  isMember = x: xs: builtins.any # builtins.any is a lazy, short-circuiting function, its second argument is expected to be a list
-    (y: y == x)
-    xs;
-
-  satisfies = arg: predicates: builtins.any # predicates should be a list
+  satisfies = arg: predicates: builtins.any # builtins.any is a lazy, short-circuiting function, its second argument is expected to be a list
     (predicate: predicate arg)
     predicates;
 

@@ -31,7 +31,7 @@ lib: {
       !(builtins.pathExists root) # Guard against non existent directories
       then builtins.throw ("there is no " + builtins.toString root + " directory in the filesystem")
       else if 
-        !(lib.list.isMember filetype validFiletypes) # Guard against invalid filetypes
+        !(builtins.elem filetype validFiletypes) # Guard against invalid filetypes
         then builtins.throw (
           "there is no '"
           + filetype 
