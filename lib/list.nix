@@ -26,7 +26,7 @@ lib: {
     then base
     else f2
       (builtins.head xs)
-      (builtins.tail xs |> foldr f2 base);
+      (builtins.tail xs |> lib.list.foldr f2 base); # Need to reference foldr like this, since the attribute set is not recursive
 
   foldr1 = f2: xs: xs
     |> (ys: if 

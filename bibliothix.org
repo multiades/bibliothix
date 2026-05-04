@@ -145,7 +145,7 @@ That should evaluate to:
 
 ** Inputs
 
-#+begin_src nix :tangle ./flake.nix
+#+BEGIN_SRC nix :tangle ./flake.nix
 
 {
   description = "Auxiliary Nix function library, no nixpkgs dependency";
@@ -158,9 +158,9 @@ That should evaluate to:
   }: import ./default.nix;
 }
 
-#+end_src
+#+END_SRC
 
-#+begin_src nix :tangle ./default.nix
+#+BEGIN_SRC nix :tangle ./default.nix
 
 let
   lib = {
@@ -170,13 +170,13 @@ let
 in
   lib
 
-#+end_src
+#+END_SRC
 
 ** Library
 
 The =/lib/= directory contains the modules of the library.
 
-#+begin_src nix :tangle ./lib/list.nix
+#+BEGIN_SRC nix :tangle ./lib/list.nix
 
 lib: {
   listOnly = emptyAllowed: arg: let 
@@ -206,7 +206,7 @@ lib: {
     then base
     else f2
       (builtins.head xs)
-      (builtins.tail xs |> foldr f2 base);
+      (builtins.tail xs |> lib.list.foldr f2 base); # Need to reference foldr like this, since the attribute set is not recursive
 
   foldr1 = f2: xs: xs
     |> (ys: if 
@@ -223,9 +223,9 @@ lib: {
     xs;
 }
 
-#+end_src
+#+END_SRC
 
-#+begin_src nix :tangle ./lib/path.nix
+#+BEGIN_SRC nix :tangle ./lib/path.nix
 
 lib: {
   pathOnly = arg: if 
@@ -288,7 +288,7 @@ lib: {
     });
 }
 
-#+end_src
+#+END_SRC
 
 * LICENSE
 
