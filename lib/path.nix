@@ -15,7 +15,7 @@ lib: {
       |> builtins.match ".*/(\\.*[^./]+)(\\.[^/]*)?" # builtins.match returns null if there's no match with the regex, or a list of capture groups
       |> builtins.head); 
 
-  fileSearch = { # Maybe add recursion for directories (and symlinks pointing to directories) in the future
+  fileSearch = { # Maybe add recursion for directories (and symlinks pointing to directories) in the future, an even an `ignore` argument
     root, # Search within root
     filetype, 
     suffix # Terminating substring
