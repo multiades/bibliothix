@@ -8,12 +8,14 @@ lib: {
     (baseStr: (lib.path.pathOnly parentPath) + ("/" + baseStr))
     baseStrs;
 
-  pathToBasename = arg: arg
-    |> lib.path.pathOnly
-    |> builtins.toString
-    |> (path: path 
-      |> builtins.match ".*/(\\.*[^./]+)(\\.[^/]*)?" # builtins.match returns null if there's no match with the regex, or a list of capture groups
-      |> builtins.head); 
+  pathToBasename = arg: lib.list.pipe arg [
+    lib.path.pathOnly
+    builtins.toString
+    (path: lib.list.pipe path [
+      (builtins.match ".*/(\\.*[^./]+)(\\.[^/]*)?") # builtins.match returns null if there's no match with the regex, or a list of capture groups
+      builtins.head
+    ])
+  ]; 
 
   fileSearch = { # Maybe add recursion for directories (and symlinks pointing to directories) in the future, an even an `ignore` argument
     root, # Search within root
@@ -41,20 +43,23 @@ lib: {
         )
         else builtins.readDir root; # The keys of the returned attribute set are relative path names (of type string) from root
 
-  in entries
-    |> builtins.attrNames
-    |> builtins.filter (attrName: let 
-      suffixLen = builtins.stringLength suffix;
-    in 
-      entries.${attrName} == filetype
-      && builtins.substring
-        (builtins.stringLength attrName - suffixLen)
-        suffixLen
-        attrName == suffix)
-    |> builtins.map (attrName: let 
-      tempath = root + "/${attrName}";
-    in {
-      basename = lib.path.pathToBasename tempath;
-      path = tempath;
-    });
+  in lib.list.pipe entries [
+    builtins.attrNames
+    (builtins.filter (attrName: 
+      let 
+        suffixLen = builtins.stringLength suffix;
+      in 
+        entries.${attrName} == filetype &&
+        suffix == builtins.substring
+          (builtins.stringLength attrName - suffixLen)
+          suffixLen
+          attrName))
+    (builtins.map (attrName: 
+      let 
+        tempath = root + "/${attrName}";
+      in {
+        basename = lib.path.pathToBasename tempath;
+        path = tempath;
+      }))
+  ];
 }

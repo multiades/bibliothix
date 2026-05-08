@@ -11,11 +11,6 @@ The `./default.nix` file is the aggregator of the modules in the `./lib` directo
 # Usage
 
 
-## Note
-
-Some of the functions' definitions use the experimental Nix pipe operators. Make sure you enable them beforehand.
-
-
 ## Barebones import
 
 Here is a minimal example of using the library as a standalone import:
@@ -62,11 +57,14 @@ Enumeration of functions in each module.
 
 ## List module
 
+-   pipe
 -   listOnly
 -   satisfies
 -   foldr
 -   foldr1
 -   last
+
+<span class="underline">Note</span>: In the future the experimental Nix pipe-operators will replace the `pipe` function.
 
 
 ## Path module
@@ -108,7 +106,7 @@ Example usage on a directory named `./bashes/`, containing two bash scripts, nam
     lib.path.fileSearch {
       root = ./bashes;
       filetype = "regular";
-      suffix = ".sh"; # Or even "sh"
+      suffix = "sh"; # Or whatever terminating substring like ".sh"
     }
 
 That should evaluate to:

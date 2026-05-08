@@ -17,10 +17,6 @@ The =./default.nix= file is the aggregator of the modules in the =./lib= directo
 
 ** Usage
 
-*** Note
-
-Some of the functions' definitions use the experimental Nix pipe operators. Make sure you enable them beforehand.
-
 *** Barebones import
 
 Here is a minimal example of using the library as a standalone import:
@@ -70,11 +66,14 @@ Enumeration of functions in each module.
 
 *** List module
 
+- pipe
 - listOnly
 - satisfies
 - foldr
 - foldr1
 - last
+
+_Note_: In the future the experimental Nix pipe-operators will replace the =pipe= function.
 
 *** Path module
 
@@ -117,7 +116,7 @@ Example usage on a directory named =./bashes/=, containing two bash scripts, nam
 lib.path.fileSearch {
   root = ./bashes;
   filetype = "regular";
-  suffix = ".sh"; # Or even "sh"
+  suffix = "sh"; # Or whatever terminating substring like ".sh"
 }
 
 #+END_SRC 
@@ -180,6 +179,11 @@ The =/lib/= directory contains the modules of the library.
 #+BEGIN_SRC nix :tangle ./lib/list.nix
 
 lib: {
+  pipe = arg: fs: builtins.foldl'
+    (acc: f: f acc)
+    arg
+    fs;
+
   listOnly = emptyAllowed: arg: let 
     buffer = [ # Dynamic error message, will show up in other functions which use listOnly
       "this function is used strictly on"
@@ -190,9 +194,10 @@ lib: {
     if 
       builtins.isList arg && (emptyAllowed || arg != [])
       then arg
-      else buffer
-        |> builtins.concatStringsSep "" 
-        |> builtins.throw;
+      else lib.list.pipe buffer [
+        (builtins.concatStringsSep "")
+        builtins.throw
+      ];
 
   satisfies = arg: predicates: builtins.any # builtins.any is a lazy, short-circuiting function, its second argument is expected to be a list
     (predicate: predicate arg)
@@ -203,17 +208,22 @@ lib: {
     then base
     else f2
       (builtins.head xs)
-      (builtins.tail xs |> lib.list.foldr f2 base); # Need to reference foldr like this, since the attribute set is not recursive
+      (lib.list.pipe xs [
+        builtins.tail
+        (lib.list.foldr f2 base) # Need to reference `foldr` like this even in its recursive definition, since the `lib` attribute set is not recursive
+      ]);
 
-  foldr1 = f2: xs: xs
-    |> (ys: if 
+  foldr1 = f2: xs: lib.list.pipe xs [
+    (ys: if 
       ys == []
       then builtins.throw "foldr1 expects non-null lists"
       else ys)
-    |> (zs: lib.list.foldr
+    (zs: lib.list.foldr
       f2
       (builtins.head zs)
-      (builtins.tail zs));
+      (builtins.tail zs))
+  ];
+
 
   last = xs: lib.list.foldr1
     (_: b: b)
@@ -234,12 +244,14 @@ lib: {
     (baseStr: (lib.path.pathOnly parentPath) + ("/" + baseStr))
     baseStrs;
 
-  pathToBasename = arg: arg
-    |> lib.path.pathOnly
-    |> builtins.toString
-    |> (path: path 
-      |> builtins.match ".*/(\\.*[^./]+)(\\.[^/]*)?" # builtins.match returns null if there's no match with the regex, or a list of capture groups
-      |> builtins.head); 
+  pathToBasename = arg: lib.list.pipe arg [
+    lib.path.pathOnly
+    builtins.toString
+    (path: lib.list.pipe path [
+      (builtins.match ".*/(\\.*[^./]+)(\\.[^/]*)?") # builtins.match returns null if there's no match with the regex, or a list of capture groups
+      builtins.head
+    ])
+  ]; 
 
   fileSearch = { # Maybe add recursion for directories (and symlinks pointing to directories) in the future, an even an `ignore` argument
     root, # Search within root
@@ -267,22 +279,25 @@ lib: {
         )
         else builtins.readDir root; # The keys of the returned attribute set are relative path names (of type string) from root
 
-  in entries
-    |> builtins.attrNames
-    |> builtins.filter (attrName: let 
-      suffixLen = builtins.stringLength suffix;
-    in 
-      entries.${attrName} == filetype
-      && builtins.substring
-        (builtins.stringLength attrName - suffixLen)
-        suffixLen
-        attrName == suffix)
-    |> builtins.map (attrName: let 
-      tempath = root + "/${attrName}";
-    in {
-      basename = lib.path.pathToBasename tempath;
-      path = tempath;
-    });
+  in lib.list.pipe entries [
+    builtins.attrNames
+    (builtins.filter (attrName: 
+      let 
+        suffixLen = builtins.stringLength suffix;
+      in 
+        entries.${attrName} == filetype &&
+        suffix == builtins.substring
+          (builtins.stringLength attrName - suffixLen)
+          suffixLen
+          attrName))
+    (builtins.map (attrName: 
+      let 
+        tempath = root + "/${attrName}";
+      in {
+        basename = lib.path.pathToBasename tempath;
+        path = tempath;
+      }))
+  ];
 }
 
 #+END_SRC
